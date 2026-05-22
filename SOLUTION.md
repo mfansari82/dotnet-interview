@@ -1,7 +1,7 @@
 # Solution Documentation
 
-**Candidate Name:** [Your Name]  
-**Completion Date:** [Date]
+**Candidate Name:** Mohammedfaisal Ansari  
+**Completion Date:** 22/05/2026
 
 ---
 
@@ -111,3 +111,91 @@ _What would you do if you had more time? Consider:_
 - Deployment considerations
 
 [Your ideas here]
+
+
+
+As we have lack of time so I am adding my and details here at the last of in documents,
+
+
+Implemented features:
+- Create Todo
+- Get All Todos
+- Get Todo By Id
+- Update Todo
+- Delete Todo
+
+I used below things, it is lacking in current implementation: 
+- ASP.NET Core Web API
+- SQLite Database
+- Dependency Injection
+- Async/Await
+- Logging
+- DTO Request Models
+- Unit Testing with xUnit and Moq
+
+I also changed the project structure as well here to segregate things properly and used proper module like interface and request/Response models(DTOs)
+
+# Project Structure
+
+The project is divided into:
+- Controllers
+- Services
+- Interfaces
+- Models
+- Request DTOs
+- Unit Tests
+
+## Controller Improvements
+
+- Added Dependency Injection
+- Used proper HTTP methods
+- Added async methods
+- Added proper response handling
+- Used request DTOs instead of entity models
+
+## Service Improvements
+
+- Added async/await database operations
+- Added logging
+- Added proper update/delete checks
+
+# Unit Testing
+
+Unit tests were added for:
+- Create Todo
+- Get Todo
+- Get All Todos
+- Update Todo
+- Delete Todo
+
+Moq was used for:
+- IConfiguration
+- ILogger
+
+SQLite test database was used for testing.
+
+
+# What Can Be Improved Further
+
+If more time is available, we can improve the project further by adding:
+
+## Architecture Improvements
+- Repository Pattern
+- Unit Of Work Pattern
+- CQRS
+- Clean Architecture
+
+## Security
+- JWT Authentication
+- Authorization
+
+## Database Improvements
+- Entity Framework Core
+- Migrations
+
+## Production Improvements
+- Global Exception Middleware
+- Caching
+
+
+

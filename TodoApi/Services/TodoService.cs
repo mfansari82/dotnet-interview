@@ -1,45 +1,60 @@
 using Microsoft.Data.Sqlite;
+using TodoApi.Interfaces;
 using TodoApi.Models;
+using TodoApi.Models.Request;
 
 namespace TodoApi.Services
 {
-    public class TodoService
+    public class TodoService : ITodoService
     {
-        private string _connectionString = "Data Source=todos.db";
+        private readonly string _connectionString;
+        private readonly ILogger<TodoService> _logger;
 
-        public TodoService()
+        public TodoService(IConfiguration configuration, ILogger<TodoService> logger)
         {
+            _connectionString = configuration["ConnectionStrings:DefaultConnection"];
+            _logger = logger;
         }
 
-        public Todo CreateTodo(Todo todo)
+        public async Task<Todo> CreateTodo(CreateTodoRequest todo)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var createdAt = DateTime.UtcNow;
 
             var command = connection.CreateCommand();
             command.CommandText = $@"
                 INSERT INTO Todos (Title, Description, IsCompleted, CreatedAt)
-                VALUES ('{todo.Title}', '{todo.Description}', {(todo.IsCompleted ? 1 : 0)}, '{DateTime.UtcNow.ToString("o")}');
+                VALUES ('{todo.Title}', '{todo.Description}', {(todo.IsCompleted ? 1 : 0)}, '{createdAt}');
                 SELECT last_insert_rowid();
             ";
 
-            var id = Convert.ToInt32(command.ExecuteScalar());
-            todo.Id = id;
-            todo.CreatedAt = DateTime.UtcNow;
-            return todo;
+            var id = Convert.ToInt32(await command.ExecuteScalarAsync());
+
+            _logger.LogInformation("Todo created with Id {Id}", id);
+
+            return new Todo
+            {
+                Id = id,
+                Title = todo.Title,
+                Description = todo.Description,
+                IsCompleted = todo.IsCompleted,
+                CreatedAt = createdAt
+            };
         }
 
-        public List<Todo> GetAllTodos()
+        public async Task<List<Todo>> GetAllTodos()
         {
             var todos = new List<Todo>();
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
 
             var command = connection.CreateCommand();
             command.CommandText = "SELECT * FROM Todos";
 
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
+            await using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
                 todos.Add(new Todo
                 {
@@ -51,19 +66,21 @@ namespace TodoApi.Services
                 });
             }
 
+            _logger.LogInformation("Fetched {Count} todos", todos.Count);
+
             return todos;
         }
 
-        public Todo GetTodoById(int id)
+        public async Task<Todo?> GetTodoById(int id)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
 
             var command = connection.CreateCommand();
             command.CommandText = $"SELECT * FROM Todos WHERE Id = {id}";
 
-            using var reader = command.ExecuteReader();
-            if (reader.Read())
+            await using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
             {
                 return new Todo
                 {
@@ -78,10 +95,10 @@ namespace TodoApi.Services
             return null;
         }
 
-        public Todo UpdateTodo(int id, Todo todo)
+        public async Task<Todo?> UpdateTodo(int id, UpdateTodoRequest todo)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
 
             var command = connection.CreateCommand();
             command.CommandText = $@"
@@ -90,22 +107,39 @@ namespace TodoApi.Services
                 WHERE Id = {id}
             ";
 
-            var rowsAffected = command.ExecuteNonQuery();
+            var rowsAffected = await command.ExecuteNonQueryAsync();
 
-            todo.Id = id;
-            return todo;
+            if (rowsAffected == 0)
+            {
+                _logger.LogWarning("Todo not found for update. Id {Id}", id);
+                return null;
+            }
+
+            _logger.LogInformation("Todo updated with Id {Id}", id);
+
+            return await GetTodoById(id);
         }
 
-        public bool DeleteTodo(int id)
+        public async Task<bool> DeleteTodo(int id)
         {
-            using var connection = new SqliteConnection(_connectionString);
-            connection.Open();
+            await using var connection = new SqliteConnection(_connectionString);
+            await connection.OpenAsync();
 
             var command = connection.CreateCommand();
             command.CommandText = $"DELETE FROM Todos WHERE Id = {id}";
 
-            var rowsAffected = command.ExecuteNonQuery();
-            return rowsAffected > 0;
+            var rowsAffected = await command.ExecuteNonQueryAsync();
+
+            if (rowsAffected > 0)
+            {
+                _logger.LogInformation("Todo deleted with Id {Id}", id);
+
+                return true;
+            }
+
+            _logger.LogWarning("Todo not found for delete. Id {Id}", id);
+
+            return false;
         }
     }
 }

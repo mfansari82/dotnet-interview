@@ -1,6 +1,14 @@
 using Microsoft.Data.Sqlite;
+using TodoApi.Interfaces;
+using TodoApi.Middleware;
+using TodoApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
+builder.Configuration.GetConnectionString("DefaultConnection");
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -8,9 +16,14 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddTransient<ITodoService, TodoService>();
+
 var app = builder.Build();
 
+
 InitializeDatabase();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
